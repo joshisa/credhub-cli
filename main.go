@@ -8,7 +8,6 @@ import (
 	"github.com/cloudfoundry-incubator/credhub-cli/commands"
 	"github.com/cloudfoundry-incubator/credhub-cli/config"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub/auth"
 	"github.com/jessevdk/go-flags"
 )
 
@@ -34,23 +33,7 @@ func main() {
 		}
 
 		if cmd, ok := command.(NeedsClient); ok {
-			cfg := config.ReadConfig()
-			if err := config.ValidateConfig(cfg); err != nil {
-				return err
-			}
-			client, err := credhub.New(cfg.ApiURL,
-				credhub.AuthURL(cfg.AuthURL),
-				credhub.CaCerts(cfg.CaCerts...),
-				credhub.SkipTLSValidation(cfg.InsecureSkipVerify),
-				credhub.Auth(auth.Uaa(
-					cfg.ClientID,
-					cfg.ClientSecret,
-					"",
-					"",
-					cfg.AccessToken,
-					cfg.RefreshToken,
-					true,
-				)))
+			client, err := commands.BuildClient()
 			if err != nil {
 				return err
 			}

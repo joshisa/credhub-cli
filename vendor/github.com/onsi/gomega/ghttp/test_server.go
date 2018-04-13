@@ -111,6 +111,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
 	"reflect"
 	"regexp"
 	"strings"
@@ -263,7 +264,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			req.Body.Close()
 			w.WriteHeader(s.UnhandledRequestStatusCode)
 		} else {
-			Ω(req).Should(BeNil(), "Received Unhandled Request")
+			dump, err := httputil.DumpRequest(req, true)
+			Expect(err).NotTo(HaveOccurred())
+			Ω(string(dump)).Should(BeNil(), "Received Unhandled Request")
 		}
 	}
 }

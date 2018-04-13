@@ -10,14 +10,14 @@ import (
 	"github.com/cloudfoundry-incubator/credhub-cli/version"
 )
 
-func PrintVersion() error {
+func PrintVersion() {
 	cfg := config.ReadConfig()
 
 	credHubServerVersion := "Not Found. Have you targeted and authenticated against a CredHub server?"
 	fmt.Println("CLI Version:", version.Version)
 
 	if cfg.ApiURL != "" {
-		credhubClient, err := initializeCredhubClient(cfg)
+		credhubClient, err := BuildClient()
 
 		if err == nil || err.Error() != errors.NewRevokedTokenError().Error() {
 			_, err := credhubClient.FindAllPaths()
@@ -33,12 +33,9 @@ func PrintVersion() error {
 
 	fmt.Println("Server Version:", credHubServerVersion)
 
-	return nil
+	os.Exit(0)
 }
 
 func init() {
-	CredHub.Version = func() {
-		PrintVersion()
-		os.Exit(0)
-	}
+	CredHub.Version = PrintVersion
 }

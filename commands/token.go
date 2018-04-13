@@ -27,12 +27,14 @@ func init() {
 }
 
 func refreshConfiguration(cfg config.Config) config.Config {
-	credhubClient, _ := initializeCredhubClient(cfg)
+	credhubClient, err := BuildClient()
+	if err != nil {
+		return cfg
+	}
 	authObject := credhubClient.Auth
 	oauth := authObject.(*auth.OAuthStrategy)
-	err := oauth.Refresh()
-
-	if err != nil {
+	if err := oauth.Refresh(); err != nil {
+		fmt.Println("ERRRRRRRR", err)
 		fmt.Println("Bearer " + cfg.AccessToken)
 	}
 

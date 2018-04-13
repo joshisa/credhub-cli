@@ -3,6 +3,7 @@ package commands
 import (
 	"github.com/cloudfoundry-incubator/credhub-cli/config"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
+	"github.com/cloudfoundry-incubator/credhub-cli/credhub/auth"
 )
 
 type CredhubCommand struct {
@@ -39,4 +40,23 @@ type ConfigCommand struct {
 
 func (n *ConfigCommand) SetConfig(config config.Config) {
 	n.config = config
+}
+
+func BuildClient() (*credhub.CredHub, error) {
+	cfg := config.ReadConfig()
+	if err := config.ValidateConfig(cfg); err != nil {
+		return nil, err
+	}
+	return credhub.New(cfg.ApiURL,
+		credhub.AuthURL(cfg.AuthURL),
+		credhub.CaCerts(cfg.CaCerts...),
+		credhub.SkipTLSValidation(cfg.InsecureSkipVerify),
+		credhub.Auth(auth.Uaa(
+			cfg.ClientID,
+			cfg.ClientSecret,
+			"",
+			"",
+			cfg.AccessToken,
+			cfg.RefreshToken,
+		)))
 }

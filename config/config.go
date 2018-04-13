@@ -53,6 +53,8 @@ func ReadConfig() Config {
 	}
 	if client, ok := os.LookupEnv("CREDHUB_CLIENT"); ok {
 		c.ClientID = client
+	} else {
+		c.ClientID = AuthClient
 	}
 	if clientSecret, ok := os.LookupEnv("CREDHUB_SECRET"); ok {
 		c.ClientSecret = clientSecret
