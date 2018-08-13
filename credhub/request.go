@@ -3,9 +3,11 @@ package credhub
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 )
 
@@ -50,6 +52,20 @@ func (ch *CredHub) request(client requester, method string, pathStr string, quer
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := client.Do(req)
+	dump, derr := httputil.DumpRequestOut(req, true)
+	if derr != nil {
+		fmt.Println(derr.Error())
+		panic("something went wrong")
+	}
+
+	fmt.Println(string(dump))
+
+	dump2, derr2 := httputil.DumpResponse(resp, true)
+	if derr2 != nil {
+		panic("something went wrong with RESPONSE")
+	}
+
+	fmt.Println("***", string(dump2))
 
 	if err != nil {
 		return resp, err
