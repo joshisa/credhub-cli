@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-
 	"runtime"
 
 	"code.cloudfoundry.org/credhub-cli/config"
@@ -31,7 +30,7 @@ func withTemporaryFile(wantingFile func(string)) error {
 	return os.Remove(name)
 }
 
-var _ = Describe("Export", func() {
+var _ = FDescribe("Export", func() {
 	BeforeEach(func() {
 		login()
 	})
@@ -50,21 +49,32 @@ var _ = Describe("Export", func() {
 	})
 
 	Describe("Exporting", func() {
-		It("queries for the most recent version of all credentials", func() {
-			findJson := `{
+		findJson := `{
 				"credentials": [
 					{
 						"version_created_at": "idc",
 						"name": "/path/to/cred"
 					},
-					{
+		            {
 						"version_created_at": "idc",
 						"name": "/path/to/another/cred"
 					}
-				]
-			}`
+				]}`
 
-			getJson := `{
+		var getJson string
+
+		BeforeEach(func() {
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest("GET", "/api/v1/data", "path="),
+					RespondWith(http.StatusOK, findJson),
+				),
+			)
+		})
+
+		Context("credential is of type value", func() {
+			It("queries for the most recent version of all credentials", func() {
+				getJson = `{
 				"data": [{
 					"type":"value",
 					"id":"some_uuid",
@@ -74,76 +84,343 @@ var _ = Describe("Export", func() {
 				}]
 			}`
 
-			responseTable := `credentials:
+				responseTable := `credentials:
 - name: /path/to/cred
   type: value
   value: foo
 - name: /path/to/cred
   type: value
   value: foo`
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "name=/path/to/cred&current=true"),
+						RespondWith(http.StatusOK, getJson),
+					),
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "name=/path/to/another/cred&current=true"),
+						RespondWith(http.StatusOK, getJson),
+					),
+				)
 
-			server.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest("GET", "/api/v1/data", "path="),
-					RespondWith(http.StatusOK, findJson),
-				),
-				CombineHandlers(
-					VerifyRequest("GET", "/api/v1/data", "name=/path/to/cred&current=true"),
-					RespondWith(http.StatusOK, getJson),
-				),
-				CombineHandlers(
-					VerifyRequest("GET", "/api/v1/data", "name=/path/to/another/cred&current=true"),
-					RespondWith(http.StatusOK, getJson),
-				),
-			)
+				session := runCommand("export")
 
-			session := runCommand("export")
-
-			Eventually(session).Should(Exit(0))
-			Eventually(session.Out).Should(Say(responseTable))
+				Eventually(session).Should(Exit(0))
+				Eventually(session.Out).Should(Say(responseTable))
+			})
 		})
+		Context("credential is of type JSON", func() {
+			It("queries for the most recent version of all credentials", func() {
+				getJson = `{
+				"data": [{
+					"type":"JSON",
+					"id":"some_uuid",
+					"name":"/path/to/cred",
+					"version_created_at":"idc",
+					"value": {
+						"key": 123,
+						"key_list": [
+							"val1",
+							"val2"
+						],
+					"is_true": true
+				}]
+			}`
 
-		Context("when given a path", func() {
-			It("queries for credentials matching that path", func() {
-				noCredsJson := `{ "credentials" : [] }`
+				responseTable := `credentials:
+- name: /path/to/cred
+  type: json
+  value:
+    key: 123
+	key_list:
+	- val1
+	- val2
+	is_true: true
+- name: /path/to/cred
+  type: json
+  value:
+    key: 123
+	key_list:
+	- val1
+	- val2
+	is_true: true`
 
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest("GET", "/api/v1/data", "path=some/path"),
+						VerifyRequest("GET", "/api/v1/data", "name=/path/to/cred&current=true"),
+						RespondWith(http.StatusOK, getJson),
+					),
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "name=/path/to/another/cred&current=true"),
+						RespondWith(http.StatusOK, getJson),
+					),
+				)
+
+				session := runCommand("export")
+
+				Eventually(session).Should(Exit(0))
+				Eventually(session.Out).Should(Say(responseTable))
+			})
+		})
+		Context("credential is of type password", func() {
+			It("queries for the most recent version of all credentials", func() {
+				getJson = `{
+				"data": [{
+					"type":"password",
+					"id":"some_uuid",
+					"name":"/path/to/cred",
+					"version_created_at":"idc",
+					"value": "foo"
+				}]
+			}`
+
+				responseTable := `credentials:
+- name: /path/to/cred
+  type: password
+  value: foo
+- name: /path/to/cred
+  type: password
+  value: foo`
+
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "name=/path/to/cred&current=true"),
+						RespondWith(http.StatusOK, getJson),
+					),
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "name=/path/to/another/cred&current=true"),
+						RespondWith(http.StatusOK, getJson),
+					),
+				)
+
+				session := runCommand("export")
+
+				Eventually(session).Should(Exit(0))
+				Eventually(session.Out).Should(Say(responseTable))
+			})
+		})
+		FContext("credential is of type user", func() {
+			It("queries for the most recent version of all credentials", func() {
+				getJson = `{
+				"data": [{
+					"type":"user",
+					"id":"some_uuid",
+					"name":"/path/to/cred",
+					"version_created_at":"idc",
+					"value": {
+						"username": "lsdkjfowiej",
+						"password": "lskerhoisenk",
+						"password_hash": "klsjdf98327kjsdnf"
+					}
+				}]
+			}`
+
+				responseTable := `credentials:
+- name: /path/to/cred
+  type: user
+  value:
+	username: lsdkjfowiej
+	password: lskerhoisenk			
+- name: /path/to/cred
+  type: user
+  value:
+	username: lsdkjfowiej
+	password: lskerhoisenk`
+
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "name=/path/to/cred&current=true"),
+						RespondWith(http.StatusOK, getJson),
+					),
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "name=/path/to/another/cred&current=true"),
+						RespondWith(http.StatusOK, getJson),
+					),
+				)
+
+				session := runCommand("export")
+
+				Eventually(session).Should(Exit(0))
+				Eventually(session.Out).Should(Say(responseTable))
+			})
+		})
+		Context("credential is of type certificate", func() {
+			It("queries for the most recent version of all credentials", func() {
+				getJson = `{
+				"data": [{
+					"type":"certificate",
+					"id":"some_uuid",
+					"name":"/path/to/cred",
+					"version_created_at":"idc",
+					"value": {
+						"ca": "skdjhfwiuek"
+						"certificate": "sjodifjewoi",
+						"private_key": "jowiehfnos"
+					}
+				}]
+			}`
+
+				responseTable := `credentials:
+- name: /path/to/cred
+  type: certificate
+  value:
+    ca: skdjhfwiuek
+	certificate: sjodifjewoi
+	private_key: jowiehfnos			
+- name: /path/to/cred
+  type: certificate
+  value:
+    ca: skdjhfwiuek
+	certificate: sjodifjewoi
+	private_key: jowiehfnos`
+
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "name=/path/to/cred&current=true"),
+						RespondWith(http.StatusOK, getJson),
+					),
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "name=/path/to/another/cred&current=true"),
+						RespondWith(http.StatusOK, getJson),
+					),
+				)
+
+				session := runCommand("export")
+
+				Eventually(session).Should(Exit(0))
+				Eventually(session.Out).Should(Say(responseTable))
+			})
+		})
+		Context("credential is of type rsa", func() {
+			It("queries for the most recent version of all credentials", func() {
+				getJson = `{
+				"data": [{
+					"type":"value",
+					"id":"some_uuid",
+					"name":"/path/to/cred",
+					"version_created_at":"idc",
+					"value": {
+						"public_key": "jskdhfniu",
+						"private_key": "ksldjfdowi"
+					}
+				}]
+			}`
+
+				responseTable := `credentials:
+- name: /path/to/cred
+  type: rsa
+  value:
+    public_key: jskdhfniu
+	private_key: ksldjfdowi			
+- name: /path/to/cred
+  type: rsa
+  value:
+    public_key: jskdhfniu
+	private_key: ksldjfdowi`
+
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "name=/path/to/cred&current=true"),
+						RespondWith(http.StatusOK, getJson),
+					),
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "name=/path/to/another/cred&current=true"),
+						RespondWith(http.StatusOK, getJson),
+					),
+				)
+
+				session := runCommand("export")
+
+				Eventually(session).Should(Exit(0))
+				Eventually(session.Out).Should(Say(responseTable))
+			})
+		})
+		Context("credential is of type ssh", func() {
+			It("queries for the most recent version of all credentials", func() {
+				getJson = `{
+				"data": [{
+					"type":"value",
+					"id":"some_uuid",
+					"name":"/path/to/cred",
+					"version_created_at":"idc",
+					"value": {
+						"public_key": "sdfneiwuj",
+						"private_key": "sldkfjwoein",
+						"public_key_fingerprint": "lsienosief"
+					}
+				}]
+			}`
+
+				responseTable := `credentials:
+- name: /path/to/cred
+  type: ssh
+  value:
+    public_key: sdfneiwuj
+	private_key: sldkfjwoein
+- name: /path/to/cred
+  type: ssh
+  value:
+    public_key: sdfneiwuj
+	private_key: sldkfjwoein`
+
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "name=/path/to/cred&current=true"),
+						RespondWith(http.StatusOK, getJson),
+					),
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "name=/path/to/another/cred&current=true"),
+						RespondWith(http.StatusOK, getJson),
+					),
+				)
+
+				session := runCommand("export")
+
+				Eventually(session).Should(Exit(0))
+				Eventually(session.Out).Should(Say(responseTable))
+			})
+		})
+	})
+
+	Context("when given a path", func() {
+		It("queries for credentials matching that path", func() {
+			noCredsJson := `{ "credentials" : [] }`
+
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest("GET", "/api/v1/data", "path=some/path"),
+					RespondWith(http.StatusOK, noCredsJson),
+				),
+			)
+
+			session := runCommand("export", "-p", "some/path")
+
+			Eventually(session).Should(Exit(0))
+		})
+	})
+
+	Context("when given a file", func() {
+		It("writes the YAML to that file", func() {
+			withTemporaryFile(func(filename string) {
+				noCredsJson := `{ "credentials" : [] }`
+				noCredsYaml := `credentials: []
+`
+
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "path="),
 						RespondWith(http.StatusOK, noCredsJson),
 					),
 				)
 
-				session := runCommand("export", "-p", "some/path")
+				session := runCommand("export", "-f", filename)
 
 				Eventually(session).Should(Exit(0))
-			})
-		})
 
-		Context("when given a file", func() {
-			It("writes the YAML to that file", func() {
-				withTemporaryFile(func(filename string) {
-					noCredsJson := `{ "credentials" : [] }`
-					noCredsYaml := `credentials: []
-`
+				Expect(filename).To(BeAnExistingFile())
 
-					server.AppendHandlers(
-						CombineHandlers(
-							VerifyRequest("GET", "/api/v1/data", "path="),
-							RespondWith(http.StatusOK, noCredsJson),
-						),
-					)
+				fileContents, _ := ioutil.ReadFile(filename)
 
-					session := runCommand("export", "-f", filename)
-
-					Eventually(session).Should(Exit(0))
-
-					Expect(filename).To(BeAnExistingFile())
-
-					fileContents, _ := ioutil.ReadFile(filename)
-
-					Expect(string(fileContents)).To(Equal(noCredsYaml))
-				})
+				Expect(string(fileContents)).To(Equal(noCredsYaml))
 			})
 		})
 	})
