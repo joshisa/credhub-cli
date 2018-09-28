@@ -16,7 +16,7 @@ type permissionsResponse struct {
 }
 
 func (ch *CredHub) GetPermission(uuid string) (*permissions.Permission, error) {
-	path:= "/api/v2/permissions/" + uuid
+	path := "/api/v2/permissions/" + uuid
 
 	resp, err := ch.Request(http.MethodGet, path, nil, nil, true)
 

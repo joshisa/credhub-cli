@@ -35,8 +35,8 @@ var _ = Describe("Permissions", func() {
 			expectedPermission := permissions.Permission{
 				Actor:      "user:A",
 				Operations: []string{"read"},
-				Path:		"/example-password",
-				UUID:		"1234",
+				Path:       "/example-password",
+				UUID:       "1234",
 			}
 			Expect(actualPermissions).To(Equal(&expectedPermission))
 
@@ -47,7 +47,7 @@ var _ = Describe("Permissions", func() {
 		})
 	})
 
-	Context("AddPermissions", func() {
+	Context("AddV2Permissions", func() {
 		Context("when a credential exists", func() {
 			It("can add permissions to it", func() {
 				responseString :=
@@ -62,7 +62,7 @@ var _ = Describe("Permissions", func() {
 				}}
 				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 
-				_, err := ch.AddPermission("/example-password", "user:A", []string{"read_acl", "write_acl"})
+				_, err := ch.AddV2Permission("/example-password", "user:A", []string{"read_acl", "write_acl"})
 				Expect(err).NotTo(HaveOccurred())
 
 				By("calling the right endpoints")

@@ -135,7 +135,7 @@ func validateParameters(cmd *LoginCommand) error {
 
 		return nil
 
-	// Intent is SSO passcode
+		// Intent is SSO passcode
 	case cmd.SSOPasscode != "":
 		// Make sure nothing else is specified
 		if cmd.ClientName != "" || cmd.ClientSecret != "" || cmd.Username != "" || cmd.Password != "" || cmd.SSO {
@@ -144,7 +144,7 @@ func validateParameters(cmd *LoginCommand) error {
 
 		return nil
 
-	// Intent is to be prompted for token
+		// Intent is to be prompted for token
 	case cmd.SSO:
 		// Make sure nothing else is specified
 		if cmd.ClientName != "" || cmd.ClientSecret != "" || cmd.Username != "" || cmd.Password != "" || cmd.SSOPasscode != "" {
@@ -153,7 +153,7 @@ func validateParameters(cmd *LoginCommand) error {
 
 		return nil
 
-	// Intent is username/password
+		// Intent is username/password
 	default:
 		// Make sure nothing else is specified
 		if cmd.ClientName != "" || cmd.ClientSecret != "" || cmd.SSO || cmd.SSOPasscode != "" {
