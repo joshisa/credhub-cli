@@ -35,7 +35,20 @@ func (ch *CredHub) GetPermission(uuid string) (*permissions.Permission, error) {
 	return &response, nil
 }
 
-func (ch *CredHub) AddPermission(path string, actor string, ops []string) (*permissions.Permission, error) {
+func (ch *CredHub) AddV1Permissions(credName string, perms []permissions.Permission) ([]permissions.Permission, error) {
+	requestBody := map[string]interface{}{}
+	requestBody["credential_name"] = credName
+	requestBody["permissions"] = perms
+
+	_, err := ch.Request(http.MethodPost, "/api/v1/permissions", nil, requestBody, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+func (ch *CredHub) AddV2Permission(path string, actor string, ops []string) (*permissions.Permission, error) {
 	requestBody := map[string]interface{}{}
 	requestBody["path"] = path
 	requestBody["actor"] = actor
@@ -55,4 +68,8 @@ func (ch *CredHub) AddPermission(path string, actor string, ops []string) (*perm
 	}
 
 	return &response, nil
+}
+
+func (ch *CredHub) AddPermission(path string, actor string, ops []string) (*permissions.Permission, error) {
+	return nil, nil
 }
