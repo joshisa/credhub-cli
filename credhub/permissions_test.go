@@ -13,16 +13,17 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = FDescribe("Permissions", func() {
+var _ = Describe("Permissions", func() {
 	Context("GetPermission", func() {
 		Context("when server version is less than 2.0.0", func() {
-			It("returns permission using V1 endpoint", func() {
+			FIt("returns permission using V1 endpoint", func() {
 				responseString :=
 					`{
-		"actor":"user:A",
-		"operations":["read"],
-		"path":"/example-password",
-		"uuid":"1234"
+	"credential_name":"/test-password",
+	"permissions":[{
+			"actor":"user:A",
+			"operations":["read"]
+			}]
 	}`
 
 				dummyAuth := &DummyAuth{Response: &http.Response{
@@ -31,16 +32,16 @@ var _ = FDescribe("Permissions", func() {
 				}}
 
 				ch, _ := New("https://example.com", Auth(dummyAuth.Builder()), ServerVersion("1.9.0"))
-				actualPermissions, err := ch.GetPermission("1234")
+				actualPermissions, err := ch.GetPermissions("1234")
 				Expect(err).NotTo(HaveOccurred())
 
-				expectedPermission := permissions.Permission{
-					Actor:      "user:A",
-					Operations: []string{"read"},
-					Path:       "/example-password",
-					UUID:       "1234",
+				expectedPermission := []permissions.V1_Permission{
+					{
+						Actor:      "user:A",
+						Operations: []string{"read"},
+					},
 				}
-				Expect(actualPermissions).To(Equal(&expectedPermission))
+				Expect(actualPermissions).To(Equal(expectedPermission))
 
 				By("calling the right endpoints")
 				url := dummyAuth.Request.URL.String()
@@ -140,13 +141,11 @@ var _ = FDescribe("Permissions", func() {
 
 				expectedParams := `{
 			  "credential_name": "/example-password",
-			  "permissions": 
+			  "permissions": [
 			  {
 				"actor": "some-actor",
-				"operations": ["read", "write"],
-				"path": "",
-				"uuid": ""
-			  }
+				"operations": ["read", "write"]
+			  }]
 			}`
 				Expect(params).To(MatchJSON(expectedParams))
 			})

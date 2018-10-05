@@ -12,7 +12,12 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-func (ch *CredHub) getV1Permission(name string) (*http.Response, error) {
+type permissionsResponse struct {
+	CredentialName string                   `json:"credential_name"`
+	Permissions    []permissions.V1_Permission `json:"permissions"`
+}
+
+func (ch *CredHub) GetPermissions(name string) ([]permissions.V1_Permission, error) {
 	query := url.Values{}
 	query.Set("credential_name", name)
 
@@ -21,34 +26,21 @@ func (ch *CredHub) getV1Permission(name string) (*http.Response, error) {
 		return nil, err
 	}
 
-	return resp, err
+	defer resp.Body.Close()
+	defer io.Copy(ioutil.Discard, resp.Body)
+	var response permissionsResponse
+
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, err
+	}
+
+	return response.Permissions, err
 }
 
-func (ch *CredHub) getV2Permission(uuid string) (*http.Response, error) {
+func (ch *CredHub) GetPermission(uuid string) (*permissions.Permission, error) {
 	path := "/api/v2/permissions/" + uuid
 
 	resp, err := ch.Request(http.MethodGet, path, nil, nil, true)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
-func (ch *CredHub) GetPermission(param string) (*permissions.Permission, error) {
-	serverVersion, err := ch.getServerVersion()
-	if err != nil {
-		return nil, err
-	}
-
-	var resp *http.Response
-
-	if serverVersion.Segments()[0] < 2 {
-		resp, err = ch.getV1Permission(param)
-	} else {
-		resp, err = ch.getV2Permission(param)
-	}
 
 	if err != nil {
 		return nil, err
@@ -65,10 +57,10 @@ func (ch *CredHub) GetPermission(param string) (*permissions.Permission, error) 
 	return &response, nil
 }
 
-func (ch *CredHub) addV1Permission(credName string, perm permissions.Permission) (*http.Response, error) {
+func (ch *CredHub) addV1Permission(credName string, perms []permissions.V1_Permission) (*http.Response, error) {
 	requestBody := map[string]interface{}{}
 	requestBody["credential_name"] = credName
-	requestBody["permissions"] = perm
+	requestBody["permissions"] = perms
 
 	resp, err := ch.Request(http.MethodPost, "/api/v1/permissions", nil, requestBody, true)
 	if err != nil {
@@ -102,7 +94,7 @@ func (ch *CredHub) AddPermission(path string, actor string, ops []string) (*perm
 	isOlderVersion := serverVersion.Segments()[0] < 2
 
 	if isOlderVersion {
-		resp, err = ch.addV1Permission(path, permissions.Permission{Actor: actor, Operations: ops})
+		resp, err = ch.addV1Permission(path, []permissions.V1_Permission{{Actor: actor, Operations: ops}})
 	} else {
 		resp, err = ch.addV2Permission(path, actor, ops)
 	}
