@@ -1,6 +1,7 @@
 package commands_test
 
 import (
+	"bytes"
 	"net/http"
 
 	"runtime"
@@ -12,7 +13,6 @@ import (
 	. "github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
 	. "github.com/onsi/gomega/ghttp"
-	"strings"
 )
 
 var _ = Describe("Get", func() {
@@ -166,7 +166,7 @@ var _ = Describe("Get", func() {
 		}`))
 	})
 
-	FIt("can quiet output for password", func() {
+	It("can quiet output for password", func() {
 		responseJson := fmt.Sprintf(STRING_CREDENTIAL_ARRAY_RESPONSE_JSON, "password", "my-password", "potatoes")
 
 		server.RouteToHandler("GET", "/api/v1/data",
@@ -179,7 +179,7 @@ var _ = Describe("Get", func() {
 		session := runCommand("get", "-n", "my-password", "-q")
 
 		Eventually(session).Should(Exit(0))
-		contents := strings.TrimSpace(string(session.Out.Contents()))
+		contents := string(bytes.TrimSpace(session.Out.Contents()))
 		Eventually(contents).Should(Equal("potatoes"))
 	})
 
