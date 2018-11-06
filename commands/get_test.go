@@ -1,6 +1,7 @@
 package commands_test
 
 import (
+	"bytes"
 	"net/http"
 
 	"runtime"
@@ -14,7 +15,7 @@ import (
 	. "github.com/onsi/gomega/ghttp"
 )
 
-var _ = Describe("Get", func() {
+var _ = FDescribe("Get", func() {
 	BeforeEach(func() {
 		login()
 	})
@@ -231,6 +232,108 @@ var _ = Describe("Get", func() {
   version_created_at: "` + TIMESTAMP + `"
 `))
 
+	})
+
+	Context("when the quiet flag is specified", func() {
+		It("only returns the value", func() {
+			responseJson := fmt.Sprintf(CERTIFICATE_CREDENTIAL_ARRAY_RESPONSE_JSON, "my-secret", "----begin----\\nmy-ca\\n-----end------", "----begin----\\nmy-cert\\n-----end------", "----begin----\\nmy-priv\\n-----end------")
+
+			server.RouteToHandler("GET", "/api/v1/data",
+				CombineHandlers(
+					VerifyRequest("GET", "/api/v1/data", "current=true&name=my-secret"),
+					RespondWith(http.StatusOK, responseJson),
+				),
+			)
+
+			session := runCommand("get", "-n", "my-secret", "-q")
+
+			Eventually(session).Should(Exit(0))
+			Eventually(string(session.Out.Contents())).Should(Equal(`ca: |-
+  ----begin----
+  my-ca
+  -----end------
+certificate: |-
+  ----begin----
+  my-cert
+  -----end------
+private_key: |-
+  ----begin----
+  my-priv
+  -----end------
+
+`))
+		})
+
+		It("should not only return the value", func() {
+			responseJson := fmt.Sprintf(CERTIFICATE_CREDENTIAL_ARRAY_RESPONSE_JSON, "my-secret", "----begin----\\nmy-ca\\n-----end------", "----begin----\\nmy-cert\\n-----end------", "----begin----\\nmy-priv\\n-----end------")
+
+			server.RouteToHandler("GET", "/api/v1/data",
+				CombineHandlers(
+					VerifyRequest("GET", "/api/v1/data", "current=true&name=my-secret"),
+					RespondWith(http.StatusOK, responseJson),
+				),
+			)
+
+			session := runCommand("get", "-n", "my-secret", "-q", "-k", "ca")
+
+			Eventually(session).Should(Exit(0))
+			Eventually(string(session.Out.Contents())).ShouldNot(Equal(`ca: |-
+  ----begin----
+  my-ca
+  -----end------
+certificate: |-
+  ----begin----
+  my-cert
+  -----end------
+private_key: |-
+  ----begin----
+  my-priv
+  -----end------
+
+`))
+		})
+
+		Context("when there is nested JSON", func() {
+			It("only return the value", func() {
+				responseJson := fmt.Sprintf(JSON_CREDENTIAL_ARRAY_RESPONSE_JSON, "json-secret", `{"foo":"bar","nested":{"a":1},"an":["array"]}`)
+
+				server.RouteToHandler("GET", "/api/v1/data",
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "current=true&name=json-secret"),
+						RespondWith(http.StatusOK, responseJson),
+					),
+				)
+
+				session := runCommand("get", "-n", "json-secret", "-q")
+
+				Eventually(session).Should(Exit(0))
+				contents := string(bytes.TrimSpace(session.Out.Contents()))
+				Eventually(contents).Should(Equal(`an:
+- array
+foo: bar
+nested:
+  a: 1`))
+			})
+		})
+
+		Context("when there are a specified number of versions", func() {
+			XIt("returns an error", func() {
+				responseJson := `{"data":[{"type":"password","id":"` + UUID + `","name":"my-password","version_created_at":"` + TIMESTAMP + `","value":"old-password"},{"type":"password","id":"` + UUID + `","name":"my-password","version_created_at":"` + TIMESTAMP + `","value":"new-password"}]}`
+
+				server.RouteToHandler("GET", "/api/v1/data",
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "name=my-password&versions=2"),
+						RespondWith(http.StatusOK, responseJson),
+					),
+				)
+
+				session := runCommand("get", "-n", "my-password", "--versions", "2", "-q")
+
+				Eventually(session).Should(Exit(0))
+				contents := string(bytes.TrimSpace(session.Out.Contents()))
+				Eventually(contents).Should(Equal(``))
+			})
+		})
 	})
 
 	Context("when a key is specified", func() {

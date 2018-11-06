@@ -12,6 +12,7 @@ type GetCommand struct {
 	ID               string `long:"id" description:"ID of the credential to retrieve"`
 	NumberOfVersions int    `long:"versions" description:"Number of versions of the credential to retrieve"`
 	OutputJSON       bool   `short:"j" long:"output-json" description:"Return response in JSON format"`
+	OutputQuiet      bool   `short:"q" long:"quiet" description:"Return value of credential without metadata"`
 	Key              string `short:"k" long:"key" description:"Return only the specified field of the requested credential"`
 	ClientCommand
 }
@@ -66,7 +67,11 @@ func (c *GetCommand) Execute([]string) error {
 				printCredential(c.OutputJSON, cred[c.Key])
 			}
 		} else {
-			printCredential(c.OutputJSON, credential)
+			if c.OutputQuiet {
+				printCredential(c.OutputJSON, credential.Value)
+			} else {
+				printCredential(c.OutputJSON, credential)
+			}
 		}
 	}
 
