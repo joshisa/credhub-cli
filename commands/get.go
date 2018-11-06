@@ -12,28 +12,41 @@ type GetCommand struct {
 	ID               string `long:"id" description:"ID of the credential to retrieve"`
 	NumberOfVersions int    `long:"versions" description:"Number of versions of the credential to retrieve"`
 	OutputJSON       bool   `short:"j" long:"output-json" description:"Return response in JSON format"`
-	OutputQuiet      bool   `short:"q" long:"quiet" description:"Return value of credential without metadata"`
+	Quiet            bool   `short:"q" long:"quiet" description:"Return value of credential without metadata"`
 	Key              string `short:"k" long:"key" description:"Return only the specified field of the requested credential"`
 	ClientCommand
 }
 
-func (c *GetCommand) Execute([]string) error {
+func (c *GetCommand) printArrayOfCredentials() error {
+	if c.Name == "" {
+		return errors.NewMissingGetParametersError()
+	}
+
+	if c.Key != "" {
+		return errors.NewGetVersionAndKeyError()
+	}
+
+	arrayOfCredentials, err := c.client.GetNVersions(c.Name, c.NumberOfVersions)
+	if err != nil {
+		return err
+	}
+
+	output := map[string][]credentials.Credential{
+		"versions": arrayOfCredentials,
+	}
+	printCredential(c.OutputJSON, output)
+
+	return nil
+}
+
+func (c *GetCommand) printCredential() error {
 	var (
 		credential credentials.Credential
 		err        error
 	)
 
-	var arrayOfCredentials []credentials.Credential
-
 	if c.Name != "" {
-		if c.NumberOfVersions != 0 {
-			if c.Key != "" {
-				return errors.NewGetVersionAndKeyError()
-			}
-			arrayOfCredentials, err = c.client.GetNVersions(c.Name, c.NumberOfVersions)
-		} else {
-			credential, err = c.client.GetLatestVersion(c.Name)
-		}
+		credential, err = c.client.GetLatestVersion(c.Name)
 	} else if c.ID != "" {
 		credential, err = c.client.GetById(c.ID)
 	} else {
@@ -44,35 +57,42 @@ func (c *GetCommand) Execute([]string) error {
 		return err
 	}
 
-	if arrayOfCredentials != nil {
-		output := map[string][]credentials.Credential{
-			"versions": arrayOfCredentials,
+	if c.Key != "" {
+		cred, ok := credential.Value.(map[string]interface{})
+		if !ok {
+			return nil
 		}
-		printCredential(c.OutputJSON, output)
+
+		if cred[c.Key] == nil {
+			return nil
+		}
+		switch cred[c.Key].(type) {
+		case string:
+			fmt.Println(cred[c.Key])
+
+		default:
+			printCredential(c.OutputJSON, cred[c.Key])
+		}
+	} else if c.Quiet {
+		printCredential(c.OutputJSON, credential.Value)
 	} else {
-		if c.Key != "" {
-			cred, ok := credential.Value.(map[string]interface{})
-			if !ok {
-				return nil
-			}
+		printCredential(c.OutputJSON, credential)
+	}
 
-			if cred[c.Key] == nil {
-				return nil
-			}
-			switch cred[c.Key].(type) {
-			case string:
-				fmt.Println(cred[c.Key])
+	return nil
+}
 
-			default:
-				printCredential(c.OutputJSON, cred[c.Key])
-			}
-		} else {
-			if c.OutputQuiet {
-				printCredential(c.OutputJSON, credential.Value)
-			} else {
-				printCredential(c.OutputJSON, credential)
-			}
-		}
+func (c *GetCommand) Execute([]string) error {
+	var err error
+
+	if c.NumberOfVersions != 0 {
+		err = c.printArrayOfCredentials()
+	} else {
+		err = c.printCredential()
+	}
+
+	if err != nil {
+		return err
 	}
 
 	return nil
