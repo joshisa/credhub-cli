@@ -583,6 +583,57 @@ private_key: |-
 			})
 		})
 
+		Context("multiple versions with --quiet flag", func() {
+			It("only returns the value", func() {
+				responseJson := fmt.Sprintf(MULTIPLE_RSA_SSH_CREDENTIAL_ARRAY_RESPONSE_JSON,
+					"rsa",
+					"foo-rsa-key",
+					"new-public-key",
+					"new-private-key",
+					"rsa",
+					"foo-rsa-key",
+					"old-public-key",
+					"old-private-key")
+
+				server.RouteToHandler("GET", "/api/v1/data",
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "versions=2&name=foo-rsa-key"),
+						RespondWith(http.StatusOK, responseJson),
+					),
+				)
+
+				session := runCommand("get", "-n", "foo-rsa-key", "-q", "--versions", "2")
+
+				Eventually(session).Should(Exit(0))
+				contents := string(bytes.TrimSpace(session.Out.Contents()))
+				Eventually(contents).Should(Equal(`versions:
+- private_key: new-private-key
+  public_key: new-public-key
+- private_key: old-private-key
+  public_key: old-public-key`))
+			})
+		})
+
+		Context("--quiet flag with key", func() {
+			It("should not only return the value", func() {
+				responseJson := fmt.Sprintf(RSA_SSH_CREDENTIAL_ARRAY_RESPONSE_JSON, "rsa", "foo-rsa-key", "some-public-key", "some-private-key")
+
+				server.RouteToHandler("GET", "/api/v1/data",
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "current=true&name=foo-rsa-key"),
+						RespondWith(http.StatusOK, responseJson),
+					),
+				)
+
+				session := runCommand("get", "-n", "foo-rsa-key", "-q", "-k", "public_key")
+
+				Eventually(session).Should(Exit(0))
+				Eventually(session.Out).ShouldNot(Say("name: foo-rsa-key"))
+				Eventually(session.Out).ShouldNot(Say("type: rsa"))
+				Eventually(session.Out).Should(Say("some-public-key"))
+			})
+		})
+
 	})
 
 	Describe("user type", func() {
