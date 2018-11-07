@@ -63,6 +63,49 @@ var _ = FDescribe("Get", func() {
 			Eventually(session.Out).Should(Say("type: value"))
 			Eventually(session.Out).Should(Say("value: potatoes"))
 		})
+
+
+		Context("with --quiet flag", func() {
+			It("returns only the value", func() {
+				responseJson := fmt.Sprintf(STRING_CREDENTIAL_ARRAY_RESPONSE_JSON, "value", "my-value", "potatoes")
+
+				server.RouteToHandler("GET", "/api/v1/data",
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "current=true&name=my-value"),
+						RespondWith(http.StatusOK, responseJson),
+					),
+				)
+
+				session := runCommand("get", "-n", "my-value", "-q")
+
+				Eventually(session).Should(Exit(0))
+				contents := string(bytes.TrimSpace(session.Out.Contents()))
+				Eventually(contents).Should(Equal("potatoes"))
+			})
+		})
+
+
+		Context("multiple versions with --quiet flag", func() {
+			It("returns array of values", func() {
+				responseJson := fmt.Sprintf(MULTIPLE_STRING_CREDENTIAL_ARRAY_RESPONSE_JSON, "value", "my-cred", "potatoes", "value", "my-cred", "tomatoes")
+
+				server.RouteToHandler("GET", "/api/v1/data",
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "name=my-cred&versions=2"),
+						RespondWith(http.StatusOK, responseJson),
+					),
+				)
+
+				session := runCommand("get", "-n", "my-cred", "-q", "--versions", "2")
+
+				Eventually(session).Should(Exit(0))
+				contents := string(bytes.TrimSpace(session.Out.Contents()))
+				Eventually(contents).Should(Equal(`versions:
+- potatoes
+- tomatoes`))
+			})
+		})
+
 	})
 
 	Describe("password type", func() {
@@ -239,6 +282,24 @@ var _ = FDescribe("Get", func() {
 			"version_created_at": "` + TIMESTAMP + `",
 			"value": "potatoes"
 		}`))
+			})
+		})
+
+		Context("with --output-json and --quiet flags", func() {
+			It("should return an error", func() {
+				responseJson := fmt.Sprintf(STRING_CREDENTIAL_ARRAY_RESPONSE_JSON, "password", "my-password", "potatoes")
+
+				server.RouteToHandler("GET", "/api/v1/data",
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "current=true&name=my-password"),
+						RespondWith(http.StatusOK, responseJson),
+					),
+				)
+
+				session := runCommand("get", "-n", "my-password", "--output-json", "-q")
+
+				Eventually(session).Should(Exit(1))
+				Eventually(session.Err).Should(Say("The --output-json flag and --quiet flag are incompatible"))
 			})
 		})
 
@@ -500,6 +561,28 @@ private_key: |-
 			Eventually(session.Out).Should(Say("private_key: some-private-key"))
 			Eventually(session.Out).Should(Say("public_key: some-public-key"))
 		})
+
+		Context("with --quiet flag", func() {
+			It("gets only the value", func() {
+				responseJson := fmt.Sprintf(RSA_SSH_CREDENTIAL_ARRAY_RESPONSE_JSON, "rsa", "foo-rsa-key", "some-public-key", "some-private-key")
+
+				server.RouteToHandler("GET", "/api/v1/data",
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "current=true&name=foo-rsa-key"),
+						RespondWith(http.StatusOK, responseJson),
+					),
+				)
+
+				session := runCommand("get", "-n", "foo-rsa-key", "-q")
+
+				Eventually(session).Should(Exit(0))
+				Eventually(session.Out).ShouldNot(Say("name: foo-rsa-key"))
+				Eventually(session.Out).ShouldNot(Say("type: rsa"))
+				Eventually(session.Out).Should(Say("private_key: some-private-key"))
+				Eventually(session.Out).Should(Say("public_key: some-public-key"))
+			})
+		})
+
 	})
 
 	Describe("user type", func() {

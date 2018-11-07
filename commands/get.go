@@ -91,6 +91,9 @@ func (c *GetCommand) printCredential() error {
 			printCredential(c.OutputJSON, cred[c.Key])
 		}
 	} else if c.Quiet {
+		if c.OutputJSON {
+			return errors.NewOutputJsonAndQuietError()
+		}
 		printCredential(c.OutputJSON, credential.Value)
 	} else {
 		printCredential(c.OutputJSON, credential)
