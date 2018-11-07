@@ -83,17 +83,9 @@ func (c *GetCommand) printCredential() error {
 }
 
 func (c *GetCommand) Execute([]string) error {
-	var err error
-
 	if c.NumberOfVersions != 0 {
-		err = c.printArrayOfCredentials()
-	} else {
-		err = c.printCredential()
+		return c.printArrayOfCredentials()
 	}
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return c.printCredential()
 }

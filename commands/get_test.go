@@ -334,6 +334,25 @@ nested:
 				Eventually(contents).Should(Equal(``))
 			})
 		})
+
+		Context("when the type is a password", func() {
+			It("can quiet output for password", func() {
+				responseJson := fmt.Sprintf(STRING_CREDENTIAL_ARRAY_RESPONSE_JSON, "password", "my-password", "potatoes")
+
+				server.RouteToHandler("GET", "/api/v1/data",
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "current=true&name=my-password"),
+						RespondWith(http.StatusOK, responseJson),
+					),
+				)
+
+				session := runCommand("get", "-n", "my-password", "-q")
+
+				Eventually(session).Should(Exit(0))
+				contents := string(bytes.TrimSpace(session.Out.Contents()))
+				Eventually(contents).Should(Equal("potatoes"))
+			})
+		})
 	})
 
 	Context("when a key is specified", func() {
