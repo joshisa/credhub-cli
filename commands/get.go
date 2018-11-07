@@ -17,6 +17,15 @@ type GetCommand struct {
 	ClientCommand
 }
 
+func (c *GetCommand) convertToValues(credentials []credentials.Credential) []interface{} {
+	values := make([]interface{}, len(credentials))
+	for i, credential := range credentials {
+		values[i] = credential.Value
+	}
+
+	return values
+}
+
 func (c *GetCommand) printArrayOfCredentials() error {
 	if c.Name == "" {
 		return errors.NewMissingGetParametersError()
@@ -31,10 +40,18 @@ func (c *GetCommand) printArrayOfCredentials() error {
 		return err
 	}
 
-	output := map[string][]credentials.Credential{
-		"versions": arrayOfCredentials,
+	if c.Quiet {
+		values := c.convertToValues(arrayOfCredentials)
+		output := map[string][]interface{} {
+			"versions": values,
+		}
+		printCredential(c.OutputJSON, output)
+	} else {
+		output := map[string][]credentials.Credential{
+			"versions": arrayOfCredentials,
+		}
+		printCredential(c.OutputJSON, output)
 	}
-	printCredential(c.OutputJSON, output)
 
 	return nil
 }

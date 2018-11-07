@@ -316,9 +316,29 @@ nested:
 			})
 		})
 
+		Context("when multiple JSON versions", func() {
+			It("returns an array of values", func() {
+				responseJson := `{"data":[{"type":"json","id":"` + UUID + `","name":"my-json","version_created_at":"` + TIMESTAMP + `","value":{"secret":"newSecret"}},{"type":"json","id":"` + UUID + `","name":"my-json","version_created_at":"` + TIMESTAMP + `","value":{"secret":"oldSecret"}}]}`
+				server.RouteToHandler("GET", "/api/v1/data",
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "name=my-json&versions=2"),
+						RespondWith(http.StatusOK, responseJson),
+					),
+				)
+
+				session := runCommand("get", "-n", "my-json", "-q", "--versions", "2")
+
+				Eventually(session).Should(Exit(0))
+				contents := string(bytes.TrimSpace(session.Out.Contents()))
+				Eventually(contents).Should(Equal(`versions:
+- secret: newSecret
+- secret: oldSecret`))
+			})
+		})
+
 		Context("when there are a specified number of versions", func() {
-			XIt("returns an error", func() {
-				responseJson := `{"data":[{"type":"password","id":"` + UUID + `","name":"my-password","version_created_at":"` + TIMESTAMP + `","value":"old-password"},{"type":"password","id":"` + UUID + `","name":"my-password","version_created_at":"` + TIMESTAMP + `","value":"new-password"}]}`
+			It("returns an error", func() {
+				responseJson := `{"data":[{"type":"password","id":"` + UUID + `","name":"my-password","version_created_at":"` + TIMESTAMP + `","value":"new-password"},{"type":"password","id":"` + UUID + `","name":"my-password","version_created_at":"` + TIMESTAMP + `","value":"old-password"}]}`
 
 				server.RouteToHandler("GET", "/api/v1/data",
 					CombineHandlers(
@@ -331,7 +351,9 @@ nested:
 
 				Eventually(session).Should(Exit(0))
 				contents := string(bytes.TrimSpace(session.Out.Contents()))
-				Eventually(contents).Should(Equal(``))
+				Eventually(contents).Should(Equal(`versions:
+- new-password
+- old-password`))
 			})
 		})
 
