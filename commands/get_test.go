@@ -15,7 +15,7 @@ import (
 	. "github.com/onsi/gomega/ghttp"
 )
 
-var _ = FDescribe("Get", func() {
+var _ = Describe("Get", func() {
 	BeforeEach(func() {
 		login()
 	})
@@ -633,7 +633,6 @@ private_key: |-
 				Eventually(session.Out).Should(Say("some-public-key"))
 			})
 		})
-
 	})
 
 	Describe("user type", func() {
@@ -655,6 +654,82 @@ private_key: |-
 			Eventually(session.Out).Should(Say("password: test-password"))
 			Eventually(session.Out).Should(Say(`password_hash: passw0rd-H4\$h`))
 			Eventually(session.Out).Should(Say("username: my-username"))
+		})
+
+		Context("with --quiet flag", func() {
+			It("gets only the value", func() {
+				responseJson := fmt.Sprintf(USER_CREDENTIAL_ARRAY_RESPONSE_JSON, "my-username-credential", "my-username", "test-password", "passw0rd-H4$h")
+
+				server.RouteToHandler("GET", "/api/v1/data",
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "current=true&name=my-username"),
+						RespondWith(http.StatusOK, responseJson),
+					),
+				)
+
+				session := runCommand("get", "-n", "my-username", "-q")
+
+				Eventually(session).Should(Exit(0))
+				Eventually(session.Out).ShouldNot(Say("name: my-username-credential"))
+				Eventually(session.Out).ShouldNot(Say("type: user"))
+				Eventually(session.Out).Should(Say("password: test-password"))
+				Eventually(session.Out).Should(Say(`password_hash: passw0rd-H4\$h`))
+				Eventually(session.Out).Should(Say("username: my-username"))
+			})
+		})
+
+		Context("multiple versions with the --quiet flag", func() {
+			It("returns an array of values", func() {
+				responseJson := fmt.Sprintf(MULTIPLE_USER_CREDENTIAL_ARRAY_RESPONSE_JSON,
+					"my-username-credential",
+					"new-username",
+					"new-password",
+					"new-passw0rd-H4$h",
+					"my-username-credential",
+					"old-username",
+					"old-password",
+					"old-passw0rd-H4$h")
+
+				server.RouteToHandler("GET", "/api/v1/data",
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "name=my-username-credential&versions=2"),
+						RespondWith(http.StatusOK, responseJson),
+					),
+				)
+
+				session := runCommand("get", "-n", "my-username-credential", "-q", "--versions", "2")
+
+				Eventually(session).Should(Exit(0))
+				Eventually(session.Out).ShouldNot(Say("name: my-username-credential"))
+				Eventually(session.Out).ShouldNot(Say("type: user"))
+				Eventually(session.Out).Should(Say("versions:"))
+				Eventually(session.Out).Should(Say("- password: new-password"))
+				Eventually(session.Out).Should(Say(`  password_hash: new-passw0rd-H4\$h`))
+				Eventually(session.Out).Should(Say("  username: new-username"))
+				Eventually(session.Out).Should(Say("- password: old-password"))
+				Eventually(session.Out).Should(Say(`  password_hash: old-passw0rd-H4\$h`))
+				Eventually(session.Out).Should(Say("  username: old-username"))
+			})
+		})
+
+		Context("--quiet flag with key", func() {
+			It("ignores the quiet flag", func() {
+				responseJson := fmt.Sprintf(USER_CREDENTIAL_ARRAY_RESPONSE_JSON, "my-username-credential", "my-username", "test-password", "passw0rd-H4$h")
+
+				server.RouteToHandler("GET", "/api/v1/data",
+					CombineHandlers(
+						VerifyRequest("GET", "/api/v1/data", "current=true&name=my-username"),
+						RespondWith(http.StatusOK, responseJson),
+					),
+				)
+
+				session := runCommand("get", "-n", "my-username", "-q", "-k", "password_hash")
+
+				Eventually(session).Should(Exit(0))
+				contents := string(bytes.TrimSpace(session.Out.Contents()))
+				Eventually(contents).Should(Equal(`passw0rd-H4$h`))
+			})
+
 		})
 	})
 
