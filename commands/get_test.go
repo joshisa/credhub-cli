@@ -264,6 +264,53 @@ private_key: |-
 `))
 		})
 
+		It("only returns the value", func() {
+			responseJson := fmt.Sprintf(MULTIPLE_CERTIFICATE_CREDENTIAL_ARRAY_RESPONSE_JSON,
+				"my-secret",
+				"----begin----\\nmy-new-ca\\n-----end------",
+				"----begin----\\nmy-new-cert\\n-----end------",
+				"----begin----\\nmy-new-priv\\n-----end------",
+				"my-secret",
+				"----begin----\\nmy-old-ca\\n-----end------",
+				"----begin----\\nmy-old-cert\\n-----end------",
+				"----begin----\\nmy-old-priv\\n-----end------")
+			server.RouteToHandler("GET", "/api/v1/data",
+				CombineHandlers(
+					VerifyRequest("GET", "/api/v1/data", "name=my-secret&versions=2"),
+					RespondWith(http.StatusOK, responseJson),
+				),
+			)
+
+			session := runCommand("get", "-n", "my-secret", "-q", "--versions", "2")
+
+			Eventually(session).Should(Exit(0))
+			Eventually(string(bytes.TrimSpace(session.Out.Contents()))).Should(Equal(`versions:
+- ca: |-
+    ----begin----
+    my-new-ca
+    -----end------
+  certificate: |-
+    ----begin----
+    my-new-cert
+    -----end------
+  private_key: |-
+    ----begin----
+    my-new-priv
+    -----end------
+- ca: |-
+    ----begin----
+    my-old-ca
+    -----end------
+  certificate: |-
+    ----begin----
+    my-old-cert
+    -----end------
+  private_key: |-
+    ----begin----
+    my-old-priv
+    -----end------`))
+		})
+
 		It("should not only return the value", func() {
 			responseJson := fmt.Sprintf(CERTIFICATE_CREDENTIAL_ARRAY_RESPONSE_JSON, "my-secret", "----begin----\\nmy-ca\\n-----end------", "----begin----\\nmy-cert\\n-----end------", "----begin----\\nmy-priv\\n-----end------")
 
