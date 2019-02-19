@@ -44,7 +44,11 @@ func (c *ImportCommand) setCredentials(bulkImport models.CredentialBulkImport) e
 		default:
 			name = ""
 		}
-
+		if credential["type"].(string) == "ssh" {
+			if _, ok := credential["value"].(map[string]interface{})["public_key_fingerprint"]; ok {
+				delete(credential["value"].(map[string]interface{}), "public_key_fingerprint")
+			}
+		}
 		result, err := c.client.SetCredential(name, credential["type"].(string), credential["value"])
 
 		if err != nil {
