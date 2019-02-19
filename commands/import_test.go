@@ -265,6 +265,24 @@ Failed to set: 0
 `))
 		})
 	})
+
+	Describe("when importing a user type with password_hash", func() {
+		It("ignore password_hash", func() {
+			SetupPutUserServer("/test/userCred", `{"username": "sample-username", "password": "test-user-password"}`, "sample-username", "test-user-password", "P455W0rd-H45H")
+
+			session := runCommand("import", "-f", "../test/test_import_user_type_with_password_hash.yml")
+			Eventually(session).Should(Exit(0))
+			Eventually(session.Out).Should(Say(`type: user
+value:
+  password: test-user-password
+  password_hash: P455W0rd-H45H
+  username: sample-username`))
+			Eventually(session.Out).Should(Say(`Import complete.
+Successfully set: 1
+Failed to set: 0
+`))
+		})
+	})
 })
 
 func setUpImportRequests() {
