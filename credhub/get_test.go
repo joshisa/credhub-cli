@@ -731,21 +731,26 @@ var _ = Describe("Get", func() {
 		}),
 	}
 
-	DescribeTable("errors when response body cannot be unmarshalled",
+	DescribeTable("errors when response body is not json and/or cannot be decoded",
 		func(performAction func(*CredHub) error) {
 			dummyAuth := &DummyAuth{Response: &http.Response{
-				Body: ioutil.NopCloser(bytes.NewBufferString("something-invalid")),
+				Body: ioutil.NopCloser(bytes.NewBufferString("<html>")),
 			}}
 			ch, _ := New("https://example.com", Auth(dummyAuth.Builder()))
 			err := performAction(ch)
 
 			Expect(err).To(HaveOccurred())
+			//Expect(err).To(Equal("Error: the response could not be decoded. Response body is: \n<html>"))
+			Expect(err).To(MatchError(&Error{
+				Name:        "Error: the response could not be decoded.",
+				Description: "Response body is: \n<html>",
+			}))
 		},
 
 		listOfActions...,
 	)
 
-	DescribeTable("returns credhub error when the cred does not exist",
+	FDescribeTable("returns credhub error when the cred does not exist",
 		func(performAction func(*CredHub) error) {
 			dummyAuth := &DummyAuth{Response: &http.Response{
 				StatusCode: http.StatusNotFound,

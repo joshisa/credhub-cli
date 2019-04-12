@@ -3,6 +3,7 @@ package credhub
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -110,8 +111,7 @@ func (ch *CredHub) getCurrentCredential(name string, cred interface{}) error {
 }
 
 func (ch *CredHub) makeCredentialGetRequest(query url.Values, cred interface{}) error {
-	resp, err := ch.Request(http.MethodGet, "/api/v1/data", query, nil, true)
-
+	resp, err := ch.Request(http.MethodGet, "/api/v1/data", query, nil, false)
 	if err != nil {
 		return addErrorDescription(err, " making an http request")
 	}
@@ -122,8 +122,12 @@ func (ch *CredHub) makeCredentialGetRequest(query url.Values, cred interface{}) 
 
 	response := make(map[string][]json.RawMessage)
 
+	respBody, _ := ioutil.ReadAll(resp.Body)
+
 	if err := dec.Decode(&response); err != nil {
-		return addErrorDescription(err, " while decoding http response")
+		//return addErrorDescription(err, " while decoding http response")
+		return newCredhubError("Error: the response could not be decoded.",
+			fmt.Sprintf("Response body is: \n%s", respBody))
 	}
 
 	var ok bool
@@ -139,7 +143,7 @@ func (ch *CredHub) makeCredentialGetRequest(query url.Values, cred interface{}) 
 }
 
 func (ch *CredHub) makeCredentialGetByIdRequest(id string, cred *credentials.Credential) error {
-	resp, err := ch.Request(http.MethodGet, "/api/v1/data/"+id, nil, nil, true)
+	resp, err := ch.Request(http.MethodGet, "/api/v1/data/"+id, nil, nil, false)
 
 	if err != nil {
 		return addErrorDescription(err, " making an http request")
@@ -149,8 +153,12 @@ func (ch *CredHub) makeCredentialGetByIdRequest(id string, cred *credentials.Cre
 	defer io.Copy(ioutil.Discard, resp.Body)
 	dec := json.NewDecoder(resp.Body)
 
+	respBody, _ := ioutil.ReadAll(resp.Body)
+
 	if err := dec.Decode(cred); err != nil {
-		return addErrorDescription(err, " while decoding http response")
+		//return addErrorDescription(err, " while decoding http response")
+		return newCredhubError("Error: the response could not be decoded.",
+			fmt.Sprintf("Response body is: \n%s", respBody))
 	}
 
 	return nil
@@ -165,7 +173,7 @@ func (ch *CredHub) getNVersionsOfCredential(name string, numberOfVersions int) (
 }
 
 func (ch *CredHub) makeMultiCredentialGetRequest(query url.Values) ([]credentials.Credential, error) {
-	resp, err := ch.Request(http.MethodGet, "/api/v1/data", query, nil, true)
+	resp, err := ch.Request(http.MethodGet, "/api/v1/data", query, nil, false)
 
 	if err != nil {
 		return nil, addErrorDescription(err, " making an http request")
@@ -177,8 +185,12 @@ func (ch *CredHub) makeMultiCredentialGetRequest(query url.Values) ([]credential
 
 	response := make(map[string][]credentials.Credential)
 
+	respBody, _ := ioutil.ReadAll(resp.Body)
+
 	if err := dec.Decode(&response); err != nil {
-		return nil, addErrorDescription(err, " while decoding http response")
+		//return nil, addErrorDescription(err, " while decoding http response")
+		return nil, newCredhubError("Error: the response could not be decoded.",
+			fmt.Sprintf("Response body is: \n%s", respBody))
 	}
 
 	var ok bool
