@@ -15,6 +15,8 @@ type Metadata struct {
 	Id   string `json:"id"`
 	Base `yaml:",inline"`
 	Type string `json:"type"`
+	CaName string `json:"ca_name,omitempty" yaml:"ca_name,omitempty"`
+
 }
 
 // A generic credential

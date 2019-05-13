@@ -23,6 +23,9 @@ func ExportCredentials(credentials []credentials.Credential) (*CredentialBulkExp
 	exportCreds := exportCredentials{make([]exportCredential, len(credentials))}
 
 	for i, credential := range credentials {
+		if credential.CaName != "" {
+			credential.Value.(map[string]interface{})["ca_name"] = credential.CaName
+		}
 		exportCreds.Credentials[i] = exportCredential{credential.Name, credential.Type, credential.Value}
 	}
 

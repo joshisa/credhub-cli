@@ -26,6 +26,10 @@ func (c Credential) convertToMap() (map[string]interface{}, error) {
 		"type":               c.Type,
 	}
 
+	if c.CaName != "" {
+		result["ca_name"] = c.CaName
+	}
+
 	_, ok := c.Value.(string)
 	if ok {
 		result["value"] = c.Value
