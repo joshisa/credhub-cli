@@ -107,4 +107,5 @@ type CertificateMetadataVersion struct {
 	Transitional         bool   `json:"transitional" yaml:"transitional"`
 	CertificateAuthority bool   `json:"certificate_authority" yaml:"certificate_authority"`
 	SelfSigned           bool   `json:"self_signed" yaml:"self_signed"`
+	Generated            *bool  `json:"generated,omitempty" yaml:"generated,omitempty"`
 }

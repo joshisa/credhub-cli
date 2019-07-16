@@ -41,12 +41,17 @@ var _ = Describe("Certificates", func() {
 					{
 					  "expiry_date": "2020-05-29T12:33:50Z",
 					  "id": "some-version-id",
-					  "transitional": false
+					  "transitional": false,
+                      "self_signed": true,
+                      "certificate_authority": true,
+                      "generated": true
 					},
 					{
 					  "expiry_date": "2020-05-29T12:33:50Z",
 					  "id": "some-other-version-id",
-					  "transitional": true
+					  "transitional": true,
+                      "self_signed": true,
+                      "certificate_authority": true
 					}
 				  ]
 				},
@@ -59,7 +64,10 @@ var _ = Describe("Certificates", func() {
 					{
 					  "expiry_date": "2020-05-29T12:33:50Z",
 					  "id": "some-other-other-version-id",
-					  "transitional": false
+					  "transitional": false,
+                      "self_signed": false,
+                      "certificate_authority": false,
+                      "generated": false
 					}
 				  ]
 				}
@@ -73,6 +81,11 @@ var _ = Describe("Certificates", func() {
 
 				metadata, err := ch.GetAllCertificatesMetadata()
 
+				t := new(bool)
+				f := new(bool)
+				*t = true
+				*f = false
+
 				Expect(err).To(BeNil())
 				Expect(metadata[0].Id).To(Equal("some-id"))
 				Expect(metadata[0].Name).To(Equal("/some-cert"))
@@ -81,9 +94,15 @@ var _ = Describe("Certificates", func() {
 				Expect(metadata[0].Versions[0].Id).To(Equal("some-version-id"))
 				Expect(metadata[0].Versions[0].ExpiryDate).To(Equal("2020-05-29T12:33:50Z"))
 				Expect(metadata[0].Versions[0].Transitional).To(BeFalse())
+				Expect(metadata[0].Versions[0].CertificateAuthority).To(BeTrue())
+				Expect(metadata[0].Versions[0].SelfSigned).To(BeTrue())
+				Expect(metadata[0].Versions[0].Generated).To(Equal(t))
 				Expect(metadata[0].Versions[1].Id).To(Equal("some-other-version-id"))
 				Expect(metadata[0].Versions[1].ExpiryDate).To(Equal("2020-05-29T12:33:50Z"))
 				Expect(metadata[0].Versions[1].Transitional).To(BeTrue())
+				Expect(metadata[0].Versions[1].CertificateAuthority).To(BeTrue())
+				Expect(metadata[0].Versions[1].SelfSigned).To(BeTrue())
+				Expect(metadata[0].Versions[1].Generated).To(BeNil())
 				Expect(metadata[1].Id).To(Equal("some-other-id"))
 				Expect(metadata[1].Name).To(Equal("/some-other-cert"))
 				Expect(metadata[1].SignedBy).To(Equal("/some-cert"))
@@ -91,6 +110,9 @@ var _ = Describe("Certificates", func() {
 				Expect(metadata[1].Versions[0].Id).To(Equal("some-other-other-version-id"))
 				Expect(metadata[1].Versions[0].ExpiryDate).To(Equal("2020-05-29T12:33:50Z"))
 				Expect(metadata[1].Versions[0].Transitional).To(BeFalse())
+				Expect(metadata[1].Versions[0].CertificateAuthority).To(BeFalse())
+				Expect(metadata[1].Versions[0].SelfSigned).To(BeFalse())
+				Expect(metadata[1].Versions[0].Generated).To(Equal(f))
 			})
 		})
 

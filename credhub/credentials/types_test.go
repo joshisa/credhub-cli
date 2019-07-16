@@ -2,7 +2,6 @@ package credentials_test
 
 import (
 	"encoding/json"
-
 	"gopkg.in/yaml.v2"
 
 	. "code.cloudfoundry.org/credhub-cli/credhub/credentials"
@@ -417,7 +416,9 @@ version_created_at: '2017-01-01T04:07:18Z'`
           "id": "some-other-id",
           "transitional": false,
 		  "certificate_authority": true,
-		  "self_signed": true
+		  "self_signed": true,
+		  "generated": true
+
         }
       ]
     }`
@@ -434,6 +435,7 @@ versions:
   transitional: false
   certificate_authority: true
   self_signed: true
+  generated: true
 `
 
 			err := json.Unmarshal([]byte(metadataJson), &certMetadata)
@@ -445,17 +447,25 @@ versions:
           "id": "some-other-id",
           "transitional": false,
           "certificate_authority": true,
-		  "self_signed": true
+		  "self_signed": true,
+          "generated": true
         }`
 			var jsonVersion CertificateMetadataVersion
 			err = json.Unmarshal([]byte(jsonVersionString), &jsonVersion)
 			Expect(err).To(BeNil())
+
+			t := new(bool)
+			*t = true
 
 			Expect(certMetadata.Id).To(Equal("some-id"))
 			Expect(certMetadata.Name).To(Equal("/some-cert"))
 			Expect(certMetadata.Signs[0]).To(Equal("/another-cert"))
 			Expect(certMetadata.SignedBy).To(Equal("/some-cert"))
 			Expect(certMetadata.Versions[0]).To(Equal(jsonVersion))
+			Expect(certMetadata.Versions[0].CertificateAuthority).To(BeTrue())
+			Expect(certMetadata.Versions[0].SelfSigned).To(BeTrue())
+			Expect(certMetadata.Versions[0].Generated).To(Equal(t))
+
 
 			jsonOutput, err := json.Marshal(certMetadata)
 
@@ -465,5 +475,75 @@ versions:
 
 			Expect(yamlOutput).To(MatchYAML(metadataYaml))
 		})
+		Describe("when generated is null", func() {
+			It("is excluded from response", func() {
+				var certMetadata CertificateMetadata
+				metadataJson := `{
+      "id": "some-id",
+      "name": "/some-cert",
+      "signed_by": "/some-cert",
+      "signs": ["/another-cert"],
+      "versions": [
+        {
+          "expiry_date": "2020-05-29T12:33:50Z",
+          "id": "some-other-id",
+          "transitional": false,
+		  "certificate_authority": true,
+		  "self_signed": true
+        }
+      ]
+    }`
+
+				metadataYaml := `
+id: some-id
+name: "/some-cert"
+signed_by: "/some-cert"
+signs:
+- "/another-cert"
+versions:
+- expiry_date: '2020-05-29T12:33:50Z'
+  id: some-other-id
+  transitional: false
+  certificate_authority: true
+  self_signed: true
+`
+
+				err := json.Unmarshal([]byte(metadataJson), &certMetadata)
+
+				Expect(err).To(BeNil())
+
+				jsonVersionString := `{
+          "expiry_date": "2020-05-29T12:33:50Z",
+          "id": "some-other-id",
+          "transitional": false,
+          "certificate_authority": true,
+		  "self_signed": true
+        }`
+				var jsonVersion CertificateMetadataVersion
+				err = json.Unmarshal([]byte(jsonVersionString), &jsonVersion)
+				Expect(err).To(BeNil())
+
+				t := new(bool)
+				*t = true
+
+				Expect(certMetadata.Id).To(Equal("some-id"))
+				Expect(certMetadata.Name).To(Equal("/some-cert"))
+				Expect(certMetadata.Signs[0]).To(Equal("/another-cert"))
+				Expect(certMetadata.SignedBy).To(Equal("/some-cert"))
+				Expect(certMetadata.Versions[0]).To(Equal(jsonVersion))
+				Expect(certMetadata.Versions[0].CertificateAuthority).To(BeTrue())
+				Expect(certMetadata.Versions[0].SelfSigned).To(BeTrue())
+				Expect(certMetadata.Versions[0].Generated).To(BeNil())
+
+
+				jsonOutput, err := json.Marshal(certMetadata)
+				Expect(jsonOutput).To(MatchJSON(metadataJson))
+
+				yamlOutput, err := yaml.Marshal(certMetadata)
+
+				Expect(yamlOutput).To(MatchYAML(metadataYaml))
+			})
+		})
 	})
+
 })
