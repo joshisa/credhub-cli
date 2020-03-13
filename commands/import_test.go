@@ -330,10 +330,7 @@ Failed to set: 0
 func setUpImportRequests() {
 	SetupPutValueServer("/test/password", "password", "test-password-value")
 	SetupPutValueServer("/test/value", "value", "test-value")
-	SetupPutCertificateServer("/test/certificate",
-		`ca-certificate`,
-		`certificate`,
-		`private-key`)
+	SetupPutCertificateServer("/test/certificate", `ca-certificate`, `certificate`, `private-key`)
 	SetupPutRsaServer("/test/rsa", "rsa", "public-key", "private-key")
 	SetupPutRsaServer("/test/ssh", "ssh", "ssh-public-key", "private-key")
 	SetupPutUserServer("/test/user", `{"username": "covfefe", "password": "test-user-password"}`, "covfefe", "test-user-password", "P455W0rd-H45H")

@@ -119,7 +119,7 @@ func isAuthenticationError(err error) bool {
 }
 
 func (c *ImportCommand) setCredentialInCredHub(name, credType string, value interface{}, errorInfo *ErrorInfo, index int) error {
-	_, err := c.client.SetCredential(name, credType, value)
+	_, err := c.client.SetCredential(name, credType, value, "TO DO")
 
 	if err != nil {
 		if isAuthenticationError(err) {

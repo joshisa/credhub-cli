@@ -2,6 +2,7 @@ package credhub
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -69,6 +70,8 @@ func (ch *CredHub) generateCredential(name, credType string, gen interface{}, ov
 	if user, ok := gen.(generate.User); ok {
 		requestBody["value"] = map[string]string{"username": user.Username}
 	}
+
+	fmt.Println(requestBody)
 
 	resp, err := ch.Request(http.MethodPost, "/api/v1/data", nil, requestBody, true)
 

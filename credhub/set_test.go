@@ -452,138 +452,138 @@ var _ = Describe("Set", func() {
 		})
 	})
 
-	Describe("SetRSA()", func() {
-		It("requests to set the RSA", func() {
-			dummy := &DummyAuth{Response: &http.Response{
-				Body: ioutil.NopCloser(bytes.NewBufferString("")),
-			}}
-
-			ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("2.0.0"))
-			RSA := values.RSA{PrivateKey: "private-key", PublicKey: "public-key"}
-
-			ch.SetRSA("/example-rsa", RSA)
-
-			urlPath := dummy.Request.URL.Path
-			Expect(urlPath).To(Equal("/api/v1/data"))
-			Expect(dummy.Request.Method).To(Equal(http.MethodPut))
-
-			body, _ := ioutil.ReadAll(dummy.Request.Body)
-			Expect(body).To(MatchJSON(`
-			{
-				"name": "/example-rsa",
-				"type": "rsa",
-				"value": {
-					"public_key": "public-key",
-					"private_key": "private-key"
-				}
-			}`))
-		})
-
-		Context("when server version is not provided", func() {
-			var server *ghttp.Server
-
-			BeforeEach(func() {
-				server = ghttp.NewServer()
-				server.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/info"),
-						ghttp.RespondWith(http.StatusOK, `{}`),
-					),
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/version"),
-						ghttp.RespondWith(http.StatusOK, `{"version": "1.9.0"}`),
-					),
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", "/api/v1/data"),
-						ghttp.RespondWith(http.StatusOK, `{}`),
-					),
-				)
-			})
-
-			It("send request for server version", func() {
-				ch, _ := New(server.URL())
-				_, err := ch.SetRSA("/example-rsa", values.RSA{})
-				Expect(err).NotTo(HaveOccurred())
-			})
-		})
-
-		Context("when server version is older than 2.x", func() {
-			It("set overwrite mode", func() {
-				dummy := &DummyAuth{Response: &http.Response{
-					Body: ioutil.NopCloser(bytes.NewBufferString("")),
-				}}
-
-				version := fmt.Sprintf("1.%d.0", rand.Intn(10))
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion(version))
-				ch.SetRSA("/example-rsa", values.RSA{})
-
-				var requestBody map[string]interface{}
-				body, _ := ioutil.ReadAll(dummy.Request.Body)
-				json.Unmarshal(body, &requestBody)
-
-				Expect(requestBody["mode"]).To(Equal("overwrite"))
-			})
-		})
-
-		Context("when server version is invalid", func() {
-			It("returns an error", func() {
-				ch, _ := New("https://example.com", ServerVersion("invalid-version"))
-				_, err := ch.SetRSA("/example-rsa", values.RSA{})
-				Expect(err).To(MatchError("Malformed version: invalid-version"))
-			})
-		})
-
-		Context("when successful", func() {
-			It("returns the credential that has been set", func() {
-				dummy := &DummyAuth{Response: &http.Response{
-					StatusCode: http.StatusOK,
-					Body: ioutil.NopCloser(bytes.NewBufferString(`
-					{
-						"id": "67fc3def-bbfb-4953-83f8-4ab0682ad676",
-						"name": "/example-rsa",
-						"type": "rsa",
-						"value": {
-							"public_key": "public-key",
-							"private_key": "private-key"
-						},
-						"version_created_at": "2017-01-01T04:07:18Z"
-					}`)),
-				}}
-
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("2.0.0"))
-
-				cred, _ := ch.SetRSA("/example-rsa", values.RSA{})
-
-				Expect(cred.Name).To(Equal("/example-rsa"))
-				Expect(cred.Type).To(Equal("rsa"))
-				Expect(cred.Value).To(Equal(values.RSA{
-					PrivateKey: "private-key",
-					PublicKey:  "public-key",
-				}))
-			})
-		})
-
-		Context("when request fails", func() {
-			It("returns an error", func() {
-				dummy := &DummyAuth{Error: errors.New("network error occurred")}
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("2.0.0"))
-				_, err := ch.SetRSA("/example-rsa", values.RSA{})
-				Expect(err).To(MatchError("network error occurred"))
-			})
-		})
-
-		Context("when response body cannot be unmarshalled", func() {
-			It("returns an error", func() {
-				dummy := &DummyAuth{Response: &http.Response{
-					Body: ioutil.NopCloser(bytes.NewBufferString("something-invalid")),
-				}}
-
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("2.0.0"))
-				_, err := ch.SetRSA("/example-rsa", values.RSA{})
-				Expect(err).To(MatchError(ContainSubstring("invalid character 's'")))
-			})
-		})
-	})
+	//Describe("SetRSA()", func() {
+	//	It("requests to set the RSA", func() {
+	//		dummy := &DummyAuth{Response: &http.Response{
+	//			Body: ioutil.NopCloser(bytes.NewBufferString("")),
+	//		}}
+	//
+	//		ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("2.0.0"))
+	//		RSA := values.RSA{PrivateKey: "private-key", PublicKey: "public-key"}
+	//
+	//		ch.SetRSA("/example-rsa", RSA)
+	//
+	//		urlPath := dummy.Request.URL.Path
+	//		Expect(urlPath).To(Equal("/api/v1/data"))
+	//		Expect(dummy.Request.Method).To(Equal(http.MethodPut))
+	//
+	//		body, _ := ioutil.ReadAll(dummy.Request.Body)
+	//		Expect(body).To(MatchJSON(`
+	//		{
+	//			"name": "/example-rsa",
+	//			"type": "rsa",
+	//			"value": {
+	//				"public_key": "public-key",
+	//				"private_key": "private-key"
+	//			}
+	//		}`))
+	//	})
+	//
+	//	Context("when server version is not provided", func() {
+	//		var server *ghttp.Server
+	//
+	//		BeforeEach(func() {
+	//			server = ghttp.NewServer()
+	//			server.AppendHandlers(
+	//				ghttp.CombineHandlers(
+	//					ghttp.VerifyRequest("GET", "/info"),
+	//					ghttp.RespondWith(http.StatusOK, `{}`),
+	//				),
+	//				ghttp.CombineHandlers(
+	//					ghttp.VerifyRequest("GET", "/version"),
+	//					ghttp.RespondWith(http.StatusOK, `{"version": "1.9.0"}`),
+	//				),
+	//				ghttp.CombineHandlers(
+	//					ghttp.VerifyRequest("PUT", "/api/v1/data"),
+	//					ghttp.RespondWith(http.StatusOK, `{}`),
+	//				),
+	//			)
+	//		})
+	//
+	//		It("send request for server version", func() {
+	//			ch, _ := New(server.URL())
+	//			_, err := ch.SetRSA("/example-rsa", values.RSA{})
+	//			Expect(err).NotTo(HaveOccurred())
+	//		})
+	//	})
+	//
+	//	Context("when server version is older than 2.x", func() {
+	//		It("set overwrite mode", func() {
+	//			dummy := &DummyAuth{Response: &http.Response{
+	//				Body: ioutil.NopCloser(bytes.NewBufferString("")),
+	//			}}
+	//
+	//			version := fmt.Sprintf("1.%d.0", rand.Intn(10))
+	//			ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion(version))
+	//			ch.SetRSA("/example-rsa", values.RSA{})
+	//
+	//			var requestBody map[string]interface{}
+	//			body, _ := ioutil.ReadAll(dummy.Request.Body)
+	//			json.Unmarshal(body, &requestBody)
+	//
+	//			Expect(requestBody["mode"]).To(Equal("overwrite"))
+	//		})
+	//	})
+	//
+	//	Context("when server version is invalid", func() {
+	//		It("returns an error", func() {
+	//			ch, _ := New("https://example.com", ServerVersion("invalid-version"))
+	//			_, err := ch.SetRSA("/example-rsa", values.RSA{})
+	//			Expect(err).To(MatchError("Malformed version: invalid-version"))
+	//		})
+	//	})
+	//
+	//	Context("when successful", func() {
+	//		It("returns the credential that has been set", func() {
+	//			dummy := &DummyAuth{Response: &http.Response{
+	//				StatusCode: http.StatusOK,
+	//				Body: ioutil.NopCloser(bytes.NewBufferString(`
+	//				{
+	//					"id": "67fc3def-bbfb-4953-83f8-4ab0682ad676",
+	//					"name": "/example-rsa",
+	//					"type": "rsa",
+	//					"value": {
+	//						"public_key": "public-key",
+	//						"private_key": "private-key"
+	//					},
+	//					"version_created_at": "2017-01-01T04:07:18Z"
+	//				}`)),
+	//			}}
+	//
+	//			ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("2.0.0"))
+	//
+	//			cred, _ := ch.SetRSA("/example-rsa", values.RSA{})
+	//
+	//			Expect(cred.Name).To(Equal("/example-rsa"))
+	//			Expect(cred.Type).To(Equal("rsa"))
+	//			Expect(cred.Value).To(Equal(values.RSA{
+	//				PrivateKey: "private-key",
+	//				PublicKey:  "public-key",
+	//			}))
+	//		})
+	//	})
+	//
+	//	Context("when request fails", func() {
+	//		It("returns an error", func() {
+	//			dummy := &DummyAuth{Error: errors.New("network error occurred")}
+	//			ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("2.0.0"))
+	//			_, err := ch.SetRSA("/example-rsa", values.RSA{})
+	//			Expect(err).To(MatchError("network error occurred"))
+	//		})
+	//	})
+	//
+	//	Context("when response body cannot be unmarshalled", func() {
+	//		It("returns an error", func() {
+	//			dummy := &DummyAuth{Response: &http.Response{
+	//				Body: ioutil.NopCloser(bytes.NewBufferString("something-invalid")),
+	//			}}
+	//
+	//			ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("2.0.0"))
+	//			_, err := ch.SetRSA("/example-rsa", values.RSA{})
+	//			Expect(err).To(MatchError(ContainSubstring("invalid character 's'")))
+	//		})
+	//	})
+	//})
 
 	Describe("SetSSH()", func() {
 		It("requests to set the SSH", func() {

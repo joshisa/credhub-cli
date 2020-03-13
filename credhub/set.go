@@ -2,6 +2,7 @@ package credhub
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -13,7 +14,7 @@ import (
 // SetValue sets a value credential with a user-provided value.
 func (ch *CredHub) SetValue(name string, value values.Value) (credentials.Value, error) {
 	var cred credentials.Value
-	err := ch.setCredential(name, "value", value, &cred)
+	err := ch.setCredential(name, "value", value, &cred, "TO DO")
 
 	return cred, err
 }
@@ -21,7 +22,7 @@ func (ch *CredHub) SetValue(name string, value values.Value) (credentials.Value,
 // SetJSON sets a JSON credential with a user-provided value.
 func (ch *CredHub) SetJSON(name string, value values.JSON) (credentials.JSON, error) {
 	var cred credentials.JSON
-	err := ch.setCredential(name, "json", value, &cred)
+	err := ch.setCredential(name, "json", value, &cred, "TO DO")
 
 	return cred, err
 }
@@ -29,7 +30,7 @@ func (ch *CredHub) SetJSON(name string, value values.JSON) (credentials.JSON, er
 // SetPassword sets a password credential with a user-provided value.
 func (ch *CredHub) SetPassword(name string, value values.Password) (credentials.Password, error) {
 	var cred credentials.Password
-	err := ch.setCredential(name, "password", value, &cred)
+	err := ch.setCredential(name, "password", value, &cred, "TO DO")
 
 	return cred, err
 }
@@ -37,7 +38,7 @@ func (ch *CredHub) SetPassword(name string, value values.Password) (credentials.
 // SetUser sets a user credential with a user-provided value.
 func (ch *CredHub) SetUser(name string, value values.User) (credentials.User, error) {
 	var cred credentials.User
-	err := ch.setCredential(name, "user", value, &cred)
+	err := ch.setCredential(name, "user", value, &cred, "TO DO")
 
 	return cred, err
 }
@@ -45,15 +46,15 @@ func (ch *CredHub) SetUser(name string, value values.User) (credentials.User, er
 // SetCertificate sets a certificate credential with a user-provided value.
 func (ch *CredHub) SetCertificate(name string, value values.Certificate) (credentials.Certificate, error) {
 	var cred credentials.Certificate
-	err := ch.setCredential(name, "certificate", value, &cred)
+	err := ch.setCredential(name, "certificate", value, &cred, "TO DO")
 
 	return cred, err
 }
 
 // SetRSA sets an RSA credential with a user-provided value.
-func (ch *CredHub) SetRSA(name string, value values.RSA) (credentials.RSA, error) {
+func (ch *CredHub) SetRSA(name string, value values.RSA, metadata string) (credentials.RSA, error) {
 	var cred credentials.RSA
-	err := ch.setCredential(name, "rsa", value, &cred)
+	err := ch.setCredential(name, "rsa", value, &cred, metadata)
 
 	return cred, err
 }
@@ -61,24 +62,28 @@ func (ch *CredHub) SetRSA(name string, value values.RSA) (credentials.RSA, error
 // SetSSH sets an SSH credential with a user-provided value.
 func (ch *CredHub) SetSSH(name string, value values.SSH) (credentials.SSH, error) {
 	var cred credentials.SSH
-	err := ch.setCredential(name, "ssh", value, &cred)
+	err := ch.setCredential(name, "ssh", value, &cred, "TO DO")
+
+	fmt.Println("\n returned cred")
+	fmt.Println(cred)
 
 	return cred, err
 }
 
 // SetCredential sets a credential of any type with a user-provided value.
-func (ch *CredHub) SetCredential(name, credType string, value interface{}) (credentials.Credential, error) {
+func (ch *CredHub) SetCredential(name, credType string, value interface{}, metadata interface{}) (credentials.Credential, error) {
 	var cred credentials.Credential
-	err := ch.setCredential(name, credType, value, &cred)
+	err := ch.setCredential(name, credType, value, &cred, metadata)
 
 	return cred, err
 }
 
-func (ch *CredHub) setCredential(name, credType string, value interface{}, cred interface{}) error {
+func (ch *CredHub) setCredential(name, credType string, value interface{}, cred interface{}, metadata interface{}) error {
 	requestBody := map[string]interface{}{}
 	requestBody["name"] = name
 	requestBody["type"] = credType
 	requestBody["value"] = value
+	requestBody["metadata"] = metadata
 
 	serverVersion, err := ch.ServerVersion()
 	if err != nil {
@@ -88,12 +93,21 @@ func (ch *CredHub) setCredential(name, credType string, value interface{}, cred 
 		requestBody["mode"] = "overwrite"
 	}
 
+	fmt.Println("\n request body")
+	fmt.Println(requestBody)
+
 	resp, err := ch.Request(http.MethodPut, "/api/v1/data", nil, requestBody, true)
 	if err != nil {
 		return err
 	}
 
 	defer resp.Body.Close()
+
+	fmt.Println("\n response body")
+	body, err := ioutil.ReadAll(resp.Body)
+	bodyString := string(body)
+	fmt.Println(bodyString)
+
 	defer io.Copy(ioutil.Discard, resp.Body)
 	dec := json.NewDecoder(resp.Body)
 	return dec.Decode(cred)

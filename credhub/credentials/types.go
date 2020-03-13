@@ -9,6 +9,7 @@ import (
 type Base struct {
 	Name             string `json:"name" yaml:"name"`
 	VersionCreatedAt string `json:"version_created_at" yaml:"version_created_at"`
+	//Metadata		 string `json:"metadata" yaml:"metadata"`
 }
 
 type Metadata struct {

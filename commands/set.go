@@ -26,6 +26,7 @@ type SetCommand struct {
 	Username             string `short:"z" long:"username" description:"[User] Sets the username value of the credential"`
 	Password             string `short:"w" long:"password" description:"[Password, User] Sets the password value of the credential"`
 	OutputJSON           bool   `short:"j" long:"output-json" description:"Return response in JSON format"`
+	Metadata             string `long:"metadata" description:"[JSON] Sets the metadata for the credential"`
 	ClientCommand
 }
 
@@ -126,7 +127,13 @@ func (c *SetCommand) setCredential() (credentials.Credential, error) {
 	default:
 		value = values.Value(c.Value)
 	}
-	return c.client.SetCredential(c.CredentialIdentifier, c.Type, value)
+
+	metadata := values.JSON{}
+	err := json.Unmarshal([]byte(c.Metadata), &metadata)
+	if err != nil {
+		return credentials.Credential{}, err
+	}
+	return c.client.SetCredential(c.CredentialIdentifier, c.Type, value, metadata)
 }
 
 func promptForInput(prompt string, value *string) {
